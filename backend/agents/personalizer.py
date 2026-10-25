@@ -69,7 +69,9 @@ def _render_card(ins: Insight, state: MatchState, req: PersonalizedFeedRequest) 
         PersonaMode.FAN: "fan",
         PersonaMode.PLAYER_FOCUS: "player",
     }[req.mode]
-    return PersonalizedCard(minute=ins.minute, second=ins.second, title=headline, body=body, tag=tag)
+    return PersonalizedCard(
+        minute=ins.minute, second=ins.second, title=headline, body=body, tag=tag, verified=ins.verified
+    )
 
 
 def _localize_body(ins: Insight, req: PersonalizedFeedRequest) -> str:

@@ -108,7 +108,9 @@ class Insight(BaseModel):
     category: str = Field(description="e.g. momentum_shift, milestone, tactical, danger")
     importance: float = Field(ge=0.0, le=1.0)
     related_event_id: Optional[str] = None
-    source: str = Field(description="llm or template, for transparency")
+    source: str = Field(description="llm, template, or llm_corrected, for transparency")
+    verified: bool = True
+    verification_note: Optional[str] = None
 
 
 class OverlayCue(BaseModel):
@@ -122,6 +124,7 @@ class OverlayCue(BaseModel):
     duration_s: float = 6.0
     style: str = "neutral"
     related_insight_id: Optional[str] = None
+    verified: bool = True
 
 
 class PersonaMode(str, Enum):
@@ -142,4 +145,5 @@ class PersonalizedCard(BaseModel):
     second: int
     title: str
     body: str
-    tag: str
+    tag: str = "fan"
+    verified: bool = True

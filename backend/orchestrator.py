@@ -1,19 +1,20 @@
-"""Orchestrator — runs one synthetic match through all five agents and
+"""Orchestrator — runs one synthetic match through all six agents and
 caches the result so the API layer stays thin.
 
-Pipeline: Ingest -> Stats -> Explainer -> Render, then Personalizer is
-applied on demand per viewer request (it needs to know who's watching).
+Pipeline: Ingest -> Stats -> Explainer -> Verifier -> Render, then
+Personalizer is applied on demand per viewer request (it needs to know
+who's watching).
 """
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass, field
 
 from backend.agents.explainer import detect_triggers, explain
 from backend.agents.ingest import ingest_event, new_match_state
 from backend.agents.render import render_cue
+from backend.agents.verifier import verify
 from backend.data.generator import generate_match
-from backend.models import Insight, MatchState, OverlayCue, TeamStats
+from backend.models import Insight, MatchState, OverlayCue
 
 
 @dataclass
@@ -37,6 +38,7 @@ def create_match(seed: int | None = None) -> MatchBundle:
         ingest_event(state, event)
         for trigger in detect_triggers(state):
             insight = explain(trigger, state)
+            insight = verify(insight, trigger, state)
             bundle.insights.append(insight)
             bundle.cues.append(render_cue(insight))
 

@@ -18,6 +18,16 @@ const state = {
 
 const el = (id) => document.getElementById(id);
 
+const BCP47 = { en: "en-US", es: "es-ES", fr: "fr-FR" };
+
+function speakText(text, lang) {
+  if (!("speechSynthesis" in window) || !text) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = BCP47[lang] || "en-US";
+  utter.rate = 1.05;
+  window.speechSynthesis.speak(utter);
+}
+
 async function api(path, opts) {
   const res = await fetch(`${API_BASE}${path}`, opts);
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
@@ -116,8 +126,11 @@ function showCue(cue) {
   const zone = el("overlayZone");
   const card = document.createElement("div");
   card.className = `cue style-${cue.style}`;
+  const badge = cue.verified
+    ? '<span class="verified-badge">✓ Verified</span>'
+    : '<span class="verified-badge corrected">~ Corrected</span>';
   card.innerHTML = `<span class="cue-time">${String(cue.minute).padStart(2, "0")}:${String(cue.second).padStart(2, "0")}</span>
-    <div class="cue-title">${cue.title}</div>
+    <div class="cue-title">${cue.title}${badge}</div>
     <div class="cue-body">${cue.body}</div>`;
   zone.prepend(card);
   while (zone.children.length > 4) zone.removeChild(zone.lastChild);
@@ -125,6 +138,10 @@ function showCue(cue) {
     card.classList.add("leaving");
     setTimeout(() => card.remove(), 400);
   }, cue.duration_s * 1000);
+
+  if (el("audioToggle").checked) {
+    speakText(`${cue.title}. ${cue.body}`, el("langSelect").value);
+  }
 }
 
 function renderStats(snap) {
@@ -168,9 +185,14 @@ async function refreshPersonaFeed() {
   for (const c of data.cards) {
     const card = document.createElement("div");
     card.className = "persona-card";
+    const badge = c.verified
+      ? '<span class="verified-badge">✓ Verified</span>'
+      : '<span class="verified-badge corrected">~ Corrected</span>';
     card.innerHTML = `<span class="pc-time">${String(c.minute).padStart(2, "0")}:${String(c.second).padStart(2, "0")}</span>
-      <div class="pc-title">${c.title}</div>
+      <button class="speak-btn" type="button">🔊</button>
+      <div class="pc-title">${c.title}${badge}</div>
       <div class="pc-body">${c.body}</div>`;
+    card.querySelector(".speak-btn").addEventListener("click", () => speakText(`${c.title}. ${c.body}`, lang));
     feed.appendChild(card);
   }
 }

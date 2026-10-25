@@ -79,7 +79,7 @@ def explain(trigger: Trigger, state: MatchState) -> Insight:
     text = _try_llm_explain(trigger, state)
     source = "llm"
     if text is None:
-        text = _template_explain(trigger, state)
+        text = template_explain(trigger, state)
         source = "template"
     headline, explanation = text
     return Insight(
@@ -148,7 +148,7 @@ def _try_llm_explain(trigger: Trigger, state: MatchState) -> tuple[str, str] | N
         return None
 
 
-def _template_explain(trigger: Trigger, state: MatchState) -> tuple[str, str]:
+def template_explain(trigger: Trigger, state: MatchState) -> tuple[str, str]:
     e = trigger.event
     team = state.meta.home if e.team_id == state.meta.home.id else state.meta.away
     player = state.players.get(e.player_id) if e.player_id else None

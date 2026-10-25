@@ -56,7 +56,14 @@ body {
   border: 1px solid var(--border);
 }
 
-.controls { display: flex; gap: 8px; }
+.controls { display: flex; align-items: center; gap: 8px; }
+.audio-toggle {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.78rem; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 10px; cursor: pointer;
+}
+.audio-toggle input { accent-color: var(--accent-home); }
 .btn {
   background: var(--surface);
   color: var(--text);
@@ -148,6 +155,18 @@ body {
 .cue .cue-title { font-weight: 700; font-size: 0.95rem; }
 .cue .cue-body { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
 .cue .cue-time { float: right; color: var(--muted); font-size: 0.75rem; }
+.verified-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 0.68rem; color: var(--ok);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 10px; padding: 1px 7px; margin-left: 6px;
+}
+.verified-badge.corrected { color: var(--accent-away); border-color: rgba(255, 154, 60, 0.4); }
+.speak-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 5px; font-size: 0.68rem; padding: 1px 6px; cursor: pointer; margin-left: 6px;
+}
+.speak-btn:hover { color: var(--text); border-color: var(--accent-home); }
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(-8px); }

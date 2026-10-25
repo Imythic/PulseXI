@@ -2,32 +2,35 @@
 
 **Built for Microsoft x Premier League: Inside the Game Developer Hackathon**
 
-PulseXI turns a raw stream of synthetic football events into a live broadcast overlay feed *and* a genuinely personalized fan experience — from the same match, at the same time, through five purpose-built AI agents.
+PulseXI turns a raw stream of synthetic football events into a live, **fact-checked** broadcast overlay feed *and* a genuinely personalized, **accessible** fan experience — from the same match, at the same time, through six purpose-built AI agents.
 
 ## Elevator pitch
 
-Every match generates thousands of events, but only a handful of moments actually matter — and *why* they matter is almost never explained to the viewer. PulseXI ingests a synthetic, football-realistic event stream (passes, shots, tackles, pressure, possession changes) and runs it through a five-agent pipeline that interprets the raw data into real football statistics, explains why a given moment matters tactically or narratively, renders that explanation as a machine-readable broadcast overlay cue, and finally reshapes the same insight for three different audiences — a data-hungry analyst, a casual fan following their club, and a viewer who only cares about one player's game. One pipeline, every fan gets a match made for them.
+Every match generates thousands of events, but only a handful of moments actually matter — and *why* they matter is almost never explained to the viewer, and when an LLM is asked to explain it, there's no guarantee the numbers it says are even true. PulseXI ingests a synthetic, football-realistic event stream (passes, shots, tackles, pressure, possession changes) and runs it through a six-agent pipeline that interprets the raw data into real football statistics, explains why a given moment matters tactically or narratively, **verifies every numeric claim against the computed match data before it's allowed on screen**, renders the result as a machine-readable broadcast overlay cue, and finally reshapes the same insight for three different audiences — a data-hungry analyst, a casual fan following their club, and a viewer who only cares about one player's game — with an optional **spoken audio commentary track** for blind and partially-sighted fans. One pipeline, every fan gets a match made for them, and nothing reaches the screen that isn't true.
 
-## The 5-agent pipeline
+## The 6-agent pipeline
 
 ```
-Synthetic events ──▶ Ingest Agent ──▶ Stats Agent ──▶ Explainer Agent ──▶ Render Agent ──▶ Personalizer Agent
-                      (feed intake)   (derived stats)  (why it matters)   (overlay cue)    (per-viewer feed)
-                                            │                │
-                                            └──── shared MatchState ──────┘
+Synthetic events ──▶ Ingest ──▶ Stats ──▶ Explainer ──▶ Verifier ──▶ Render ──▶ Personalizer
+                     (intake)  (derived   (why it        (fact-      (overlay   (per-viewer
+                                 stats)     matters)       check)      cue)       feed + audio)
+                                    │           │              │
+                                    └───────── shared MatchState ─────┘
 ```
 
 - **Ingest Agent** (`backend/agents/ingest.py`) — the pipeline's front door. Takes the next raw event and hands it to Stats. Deliberately dumb: no interpretation logic, so the handoff is explicit and testable in isolation.
 - **Stats Agent** (`backend/agents/stats.py`) — pure, deterministic aggregation. Possession %, pass accuracy, shot danger, and a derived **control vs. chaos** score per team, updated incrementally as events arrive.
-- **Explainer Agent** (`backend/agents/explainer.py`) — detects insight-worthy moments (goals, fast shots, pressure spikes, tackle streaks, possession milestones, momentum swings) and explains *why* they matter via an LLM call to **GitHub Models** (free tier, OpenAI-compatible, auth'd with a `GITHUB_TOKEN`). If the LLM is slow or unreachable, a **template-based fallback agent takes over automatically** — the pipeline never stalls on a network call. This explicit recovery path is demonstrated live: every insight is tagged with `source: "llm"` or `"template"`.
-- **Render Agent** (`backend/agents/render.py`) — converts an insight into a small, timestamped, machine-readable overlay cue (`{minute, second, type, title, body, duration_s, style}`) rather than pixels. This mirrors how a real broadcast graphics tool would consume the feed in production — our frontend is just a reference renderer for the same contract.
-- **Personalizer Agent** (`backend/agents/personalizer.py`) — the final stage. Same insight feed, three different experiences: **Analyst** (every insight, full detail), **Fan** (highlights only, optionally filtered to a favorite club), **Player Focus** (only moments involving one chosen player). Also handles multi-language headlines/narratives (English baseline, LLM-translated when online, with a deterministic phrasebook fallback offline).
+- **Explainer Agent** (`backend/agents/explainer.py`) — detects insight-worthy moments (goals, fast shots, pressure spikes, tackle streaks, possession milestones, momentum swings) and explains *why* they matter via an LLM call to **GitHub Models** (free tier, OpenAI-compatible, auth'd with a `GITHUB_TOKEN`). If the LLM is slow or unreachable, a **template-based fallback agent takes over automatically** — the pipeline never stalls on a network call.
+- **Verifier Agent** (`backend/agents/verifier.py`) — the second, sharper failure-recovery path: *"the LLM responded, but is it right?"* Every percentage and speed claim in the LLM's text is extracted and cross-checked against the actual numbers in `MatchState`, matched to the correct stat by context (a "possession" claim is checked against possession %, not pass accuracy — a naive check gets fooled by coincidental overlaps). If a claim doesn't hold up, the Verifier rejects it and substitutes the always-correct template explanation, tagging the insight `source: "llm_corrected"`. Every insight carries a `verified` flag and a human-readable `verification_note` all the way to the UI.
+- **Render Agent** (`backend/agents/render.py`) — converts a verified insight into a small, timestamped, machine-readable overlay cue (`{minute, second, type, title, body, duration_s, style, verified}`) rather than pixels. This mirrors how a real broadcast graphics tool would consume the feed in production — our frontend is just a reference renderer for the same contract.
+- **Personalizer Agent** (`backend/agents/personalizer.py`) — the final stage. Same verified insight feed, three different experiences: **Analyst** (every insight, full detail), **Fan** (highlights only, optionally filtered to a favorite club), **Player Focus** (only moments involving one chosen player). Handles multi-language headlines/narratives (English baseline, LLM-translated when online, deterministic phrasebook fallback offline), and every card can be read aloud via the browser's speech synthesis — the accessibility track, not an afterthought bolted onto the UI.
 
 ## What's on screen
 
 - An animated 2D pitch tracking ball/possession position in sync with the match clock
-- Broadcast-style overlay cards (lower-thirds, stat bugs, milestone cards, a live momentum bar) appearing exactly when each insight fires
+- Broadcast-style overlay cards (lower-thirds, stat bugs, milestone cards, a live momentum bar) appearing exactly when each insight fires, each carrying a **✓ Verified** or **~ Corrected** badge so the verification step is visible, not just logged
 - A live personalization panel: switch Analyst / Fan / Player Focus, pick a favorite club or player, switch language — and watch the *same match* become a different feed in real time
+- An **Audio commentary** toggle (🔊) that speaks every overlay moment aloud as it happens, plus a per-card listen button in the personalized feed — built for blind and partially-sighted fans, not just a visual demo
 - Playback controls (play/pause, speed, scrubber) over a precomputed match timeline, plus a paced WebSocket replay (`/ws/match/{id}/live`) that demonstrates the same pipeline ingesting events as they'd arrive from a genuinely live feed
 
 ## Tech stack
@@ -60,6 +63,7 @@ PulseXI/
 │   │   ├── ingest.py          # Ingest Agent
 │   │   ├── stats.py           # Stats Agent
 │   │   ├── explainer.py       # Explainer Agent (LLM + template fallback)
+│   │   ├── verifier.py        # Verifier Agent (fact-checks LLM claims)
 │   │   ├── render.py          # Render Agent
 │   │   └── personalizer.py    # Personalizer Agent
 │   ├── data/
@@ -76,4 +80,4 @@ PulseXI/
 
 ## Why this fits the brief
 
-The brief asks for one pipeline across five stages — ingest, interpret, explain, render, personalize — and that's the literal file layout above, not just a conceptual mapping. Agentic Design is demonstrated through explicit distinct agent roles, a shared `MatchState` object as the coordination point, and a real failure-recovery handoff (LLM → template) rather than a single monolithic prompt. Real-World Impact comes from the overlay cue schema being structured for production broadcast tooling, not just a demo UI. And Personalization is proven live in the UI, not asserted in the README — switch modes and watch the feed change.
+The brief asks for one pipeline across five stages — ingest, interpret, explain, render, personalize — and that's the literal file layout above (plus Verifier, which we added because *trustworthy* explanation is implicit in "explainable match intelligence" and most explainable-AI demos skip it). Agentic Design is demonstrated through six explicit, distinct agent roles, a shared `MatchState` object as the single coordination point, and two separate, concrete failure-recovery handoffs — not one: "LLM unreachable → template agent takes over" and "LLM reachable but wrong → Verifier agent rejects and corrects it." Real-World Impact comes from the overlay cue schema being structured for production broadcast tooling, not just a demo UI, and from accessibility (audio commentary) being a first-class output, not a stretch goal. And Personalization is proven live in the UI, not asserted in the README — switch modes and watch the feed change.

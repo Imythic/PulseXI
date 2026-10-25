@@ -40,4 +40,5 @@ def render_cue(insight: Insight) -> OverlayCue:
         duration_s=round(4.0 + insight.importance * 4.0, 1),
         style=CATEGORY_TO_STYLE.get(insight.category, "neutral"),
         related_insight_id=insight.id,
+        verified=insight.verified,
     )
