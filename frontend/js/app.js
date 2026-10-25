@@ -49,6 +49,7 @@ function buildPlayerDots() {
   state.playerDots = {};
   state.playerSlots = {};
   state.activePlayerId = null;
+  hidePlayerPopup();
 
   for (const teamId of [state.meta.home.id, state.meta.away.id]) {
     const squad = Object.values(state.players).filter((p) => p.team_id === teamId);
@@ -58,16 +59,20 @@ function buildPlayerDots() {
       const baseX = isHome ? slot.x * 100 : 100 - slot.x * 100;
       const baseY = slot.y * 100;
 
+      const number = i + 1;
       const dot = document.createElement("div");
       dot.className = `player-dot ${isHome ? "home" : "away"}${p.position === "GK" ? " gk" : ""}`;
-      dot.title = `${p.name} — ${p.position}`;
-      dot.textContent = p.position === "GK" ? "GK" : "";
+      dot.title = `#${number} ${p.name} — ${p.position}`;
+      dot.textContent = number;
       dot.style.left = `${baseX}%`;
       dot.style.top = `${baseY}%`;
+      dot.addEventListener("mouseenter", () => showPlayerPopup(p.id, number, isHome));
+      dot.addEventListener("mouseleave", hidePlayerPopup);
+      dot.addEventListener("click", () => showPlayerPopup(p.id, number, isHome));
       layer.appendChild(dot);
 
       state.playerDots[p.id] = dot;
-      state.playerSlots[p.id] = { baseX, baseY, teamId, phase: phaseFor(p.id) };
+      state.playerSlots[p.id] = { baseX, baseY, teamId, phase: phaseFor(p.id), number };
     });
   }
 }
@@ -208,9 +213,46 @@ function renderFrame() {
 
   // stats panel from nearest minute snapshot
   const snap = [...state.minuteSnapshots].reverse().find((s) => s.minute * 60 <= state.clock) || state.minuteSnapshots[0];
+  state.currentSnapshot = snap;
   if (snap) renderStats(snap);
+  if (state.openPlayerId) showPlayerPopup(state.openPlayerId, state.playerSlots[state.openPlayerId].number,
+    state.playerSlots[state.openPlayerId].teamId === state.meta.home.id);
 
   el("scrubber").value = Math.floor(state.clock);
+}
+
+function showPlayerPopup(playerId, number, isHome) {
+  const popup = el("playerPopup");
+  const dot = state.playerDots[playerId];
+  const p = state.players[playerId];
+  if (!popup || !dot || !p) return;
+  state.openPlayerId = playerId;
+
+  const ps = (state.currentSnapshot && state.currentSnapshot.player_stats[playerId]) || {};
+  popup.className = `player-popup ${isHome ? "home-team" : "away-team"}`;
+  popup.innerHTML = `
+    <div class="pp-name">#${number} ${p.name}</div>
+    <div class="pp-sub">${p.position} — ${isHome ? state.meta.home.name : state.meta.away.name}</div>
+    <div class="pp-row"><span>Passes</span><span>${ps.passes_completed ?? 0}/${ps.passes_attempted ?? 0} (${Math.round((ps.pass_accuracy ?? 0) * 100)}%)</span></div>
+    <div class="pp-row"><span>Distance</span><span>${Math.round(ps.distance_covered_m ?? 0)} m</span></div>
+    <div class="pp-row"><span>Top speed</span><span>${(ps.top_speed_kmh ?? 0).toFixed(1)} km/h</span></div>
+    <div class="pp-row"><span>Shots</span><span>${ps.shots ?? 0} (${ps.shots_on_target ?? 0} on target)</span></div>
+    <div class="pp-row"><span>Tackles</span><span>${ps.tackles ?? 0}</span></div>
+  `;
+
+  const stageRect = el("pitch").parentElement.getBoundingClientRect();
+  const dotRect = dot.getBoundingClientRect();
+  let left = dotRect.left - stageRect.left + dotRect.width / 2 + 14;
+  let top = dotRect.top - stageRect.top - 10;
+  if (left + 200 > stageRect.width) left = dotRect.left - stageRect.left - 214;
+  popup.style.left = `${Math.max(4, left)}px`;
+  popup.style.top = `${Math.max(4, top)}px`;
+  popup.classList.remove("hidden");
+}
+
+function hidePlayerPopup() {
+  state.openPlayerId = null;
+  el("playerPopup").classList.add("hidden");
 }
 
 function showCue(cue) {

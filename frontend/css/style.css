@@ -209,6 +209,29 @@ body {
   border: 2px solid #fff;
   z-index: 5;
 }
+.player-dot { cursor: pointer; }
+.player-dot:hover { filter: brightness(1.25); }
+
+.player-popup {
+  position: absolute;
+  z-index: 10;
+  width: 200px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.55);
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.player-popup.hidden { opacity: 0; visibility: hidden; }
+.player-popup .pp-name { font-weight: 700; font-size: 0.88rem; }
+.player-popup .pp-sub { color: var(--muted); font-size: 0.72rem; margin-bottom: 6px; }
+.player-popup .pp-row { display: flex; justify-content: space-between; color: var(--muted); padding: 1px 0; }
+.player-popup .pp-row span:last-child { color: var(--text); font-weight: 600; }
+.player-popup.home-team { border-left: 3px solid var(--accent-home); }
+.player-popup.away-team { border-left: 3px solid var(--accent-away); }
 
 .ball {
   position: absolute;

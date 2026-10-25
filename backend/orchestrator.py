@@ -60,4 +60,5 @@ def _snapshot(state: MatchState) -> dict:
         "minute": state.events_processed[-1].minute if state.events_processed else 0,
         "momentum": state.momentum,
         "team_stats": {tid: ts.model_dump() for tid, ts in state.team_stats.items()},
+        "player_stats": {pid: ps.model_dump() for pid, ps in state.player_stats.items()},
     }
