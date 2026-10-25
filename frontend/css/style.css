@@ -1,0 +1,238 @@
+/* ── PulseXI – Main Styles ─────────────────────────────────────────── */
+:root {
+  --bg-0: #0a0e14;
+  --bg-1: #121823;
+  --surface: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.10);
+  --text: #eef3fa;
+  --muted: rgba(238, 243, 250, 0.65);
+  --pitch-green: #0f5c35;
+  --pitch-line: rgba(255, 255, 255, 0.55);
+  --accent-home: #36d6c6;
+  --accent-away: #ff9a3c;
+  --warn: #ff5d7a;
+  --ok: #4ade80;
+  font-family: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 18px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 10px var(--ok);
+}
+.brand-name { font-weight: 700; font-size: 1.1rem; }
+.brand-accent { color: var(--accent-home); }
+.brand-tag { color: var(--muted); font-size: 0.8rem; margin-left: 4px; }
+
+.scoreboard { display: flex; align-items: center; gap: 14px; font-weight: 600; }
+.scoreboard .team.home { color: var(--accent-home); }
+.scoreboard .team.away { color: var(--accent-away); }
+.scoreboard .clock {
+  font-family: "Consolas", monospace;
+  background: var(--surface);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.controls { display: flex; gap: 8px; }
+.btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.btn.primary { background: var(--accent-home); color: #06201a; border: none; font-weight: 700; }
+.btn:hover { filter: brightness(1.15); }
+
+.scrubber {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent-home);
+  background: var(--bg-1);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.pitch-panel { display: flex; flex-direction: column; gap: 8px; }
+
+.pitch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7.5;
+  max-height: 420px;
+  background: repeating-linear-gradient(
+    90deg, var(--pitch-green) 0 5%, #0d5230 5% 10%
+  );
+  border: 2px solid var(--pitch-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pitch-line.halfway {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+  background: var(--pitch-line);
+}
+.pitch-circle {
+  position: absolute; left: 50%; top: 50%; width: 14%; aspect-ratio: 1/1;
+  border: 2px solid var(--pitch-line); border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.pitch-box {
+  position: absolute; top: 20%; bottom: 20%; width: 12%;
+  border: 2px solid var(--pitch-line);
+}
+.pitch-box.left { left: 0; border-left: none; }
+.pitch-box.right { right: 0; border-right: none; }
+
+.ball {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255,255,255,0.8);
+  transform: translate(-50%, -50%);
+  transition: left 0.35s linear, top 0.35s linear, background 0.3s;
+  left: 50%; top: 50%;
+}
+.ball.home { background: var(--accent-home); box-shadow: 0 0 12px var(--accent-home); }
+.ball.away { background: var(--accent-away); box-shadow: 0 0 12px var(--accent-away); }
+
+.overlay-zone {
+  position: relative;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cue {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-home);
+  border-radius: 8px;
+  padding: 10px 14px;
+  animation: slideIn 0.35s ease-out;
+}
+.cue.style-goal { border-left-color: var(--ok); }
+.cue.style-warning { border-left-color: var(--warn); }
+.cue.style-momentum { border-left-color: var(--accent-away); }
+.cue .cue-title { font-weight: 700; font-size: 0.95rem; }
+.cue .cue-body { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+.cue .cue-time { float: right; color: var(--muted); font-size: 0.75rem; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+.cue.leaving { animation: fadeOut 0.4s ease-in forwards; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.momentum-bar-wrap { text-align: center; }
+.momentum-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+.momentum-bar {
+  height: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.momentum-fill {
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 2px;
+  background: var(--accent-home);
+  transition: left 0.4s ease, width 0.4s ease;
+}
+
+.persona-panel {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: fit-content;
+}
+.persona-panel h2 { font-size: 1rem; margin: 0 0 4px; }
+.persona-panel h3 { font-size: 0.85rem; color: var(--muted); margin: 8px 0 2px; }
+.persona-panel label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 0.78rem; color: var(--muted);
+}
+.persona-panel select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+}
+.hidden { display: none; }
+
+.persona-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.persona-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+.persona-card .pc-title { font-weight: 700; }
+.persona-card .pc-time { color: var(--muted); font-size: 0.7rem; }
+.persona-card .pc-body { margin-top: 2px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}

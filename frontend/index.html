@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PulseXI — Synthetic Match Insights Engine</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">Pulse<span class="brand-accent">XI</span></span>
+      <span class="brand-tag">Synthetic Match Insights Engine</span>
+    </div>
+    <div class="scoreboard" id="scoreboard">
+      <span class="team home" id="homeName">Home</span>
+      <span class="clock" id="clock">00:00</span>
+      <span class="team away" id="awayName">Away</span>
+    </div>
+    <div class="controls">
+      <button id="newMatchBtn" class="btn">New Match</button>
+      <button id="playBtn" class="btn primary">▶ Play</button>
+      <select id="speedSelect" class="btn">
+        <option value="15">15x</option>
+        <option value="40" selected>40x</option>
+        <option value="90">90x</option>
+        <option value="180">180x</option>
+      </select>
+    </div>
+  </header>
+
+  <input type="range" id="scrubber" min="0" max="5400" value="0" class="scrubber" />
+
+  <main class="layout">
+    <section class="pitch-panel">
+      <div class="pitch" id="pitch">
+        <div class="pitch-line halfway"></div>
+        <div class="pitch-circle"></div>
+        <div class="pitch-box left"></div>
+        <div class="pitch-box right"></div>
+        <div class="ball" id="ball"></div>
+      </div>
+      <div class="overlay-zone" id="overlayZone"></div>
+
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card" id="homeStats"></div>
+        <div class="momentum-bar-wrap">
+          <div class="momentum-label">Control ⟷ Chaos</div>
+          <div class="momentum-bar"><div class="momentum-fill" id="momentumFill"></div></div>
+        </div>
+        <div class="stat-card" id="awayStats"></div>
+      </div>
+    </section>
+
+    <aside class="persona-panel">
+      <h2>Personalize this match</h2>
+      <label>Mode
+        <select id="modeSelect">
+          <option value="fan">Fan</option>
+          <option value="analyst">Analyst</option>
+          <option value="player_focus">Player Focus</option>
+        </select>
+      </label>
+      <label>Favorite club
+        <select id="teamSelect"><option value="">Any</option></select>
+      </label>
+      <label id="playerLabel" class="hidden">Favorite player
+        <select id="playerSelect"></select>
+      </label>
+      <label>Language
+        <select id="langSelect">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+        </select>
+      </label>
+
+      <h3>Your feed</h3>
+      <div class="persona-feed" id="personaFeed"></div>
+    </aside>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
