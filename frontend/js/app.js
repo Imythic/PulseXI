@@ -100,6 +100,10 @@ function speakText(text, lang) {
   window.speechSynthesis.speak(utter);
 }
 
+function stopAudio() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+
 async function api(path, opts) {
   const res = await fetch(`${API_BASE}${path}`, opts);
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
@@ -316,6 +320,7 @@ function tick() {
     if (state.clock >= state.maxClock) {
       state.playing = false;
       el("playBtn").textContent = "▶ Play";
+      stopAudio();
       showRecap();
     }
   }
@@ -345,17 +350,20 @@ function wireControls() {
   el("playBtn").addEventListener("click", () => {
     state.playing = !state.playing;
     el("playBtn").textContent = state.playing ? "⏸ Pause" : "▶ Play";
+    if (!state.playing) stopAudio();
   });
   el("speedSelect").addEventListener("change", (e) => (state.speed = Number(e.target.value)));
   el("scrubber").addEventListener("input", (e) => {
     state.clock = Number(e.target.value);
     state.shownCueIds.clear();
     el("overlayZone").innerHTML = "";
+    stopAudio();
     renderFrame();
   });
   el("newMatchBtn").addEventListener("click", async () => {
     state.playing = false;
     el("playBtn").textContent = "▶ Play";
+    stopAudio();
     hideRecap();
     await newMatch();
     await loadTimeline();
@@ -409,6 +417,10 @@ function wireControls() {
       state.pinnedPlayerId = null;
       if (!hitId) hidePlayerPopup();
     }
+  });
+
+  el("audioToggle").addEventListener("change", (e) => {
+    if (!e.target.checked) stopAudio();
   });
 
   el("recapBtn").addEventListener("click", showRecap);
