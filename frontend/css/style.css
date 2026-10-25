@@ -181,7 +181,39 @@ body {
 .corner-arc.bl { bottom: -1.5%; left: -1.5%; clip-path: inset(0 50% 50% 0); }
 .corner-arc.br { bottom: -1.5%; right: -1.5%; clip-path: inset(0 0 50% 50%); }
 
+.pitch-content {
+  position: absolute; inset: 0;
+  transform-origin: 50% 50%;
+  transform: scale(1);
+  transition: transform 0.5s ease, transform-origin 0.3s linear;
+}
+
 .players-layer { position: absolute; inset: 0; z-index: 2; }
+
+.camera-controls {
+  position: absolute; bottom: 10px; right: 10px; z-index: 10;
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(10, 14, 20, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 8px;
+  backdrop-filter: blur(2px);
+}
+.cam-btn {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px;
+  width: 22px; height: 22px; line-height: 1;
+  cursor: pointer; font-size: 0.9rem;
+}
+.cam-btn:hover { filter: brightness(1.2); }
+.zoom-label { font-size: 0.72rem; color: var(--muted); min-width: 30px; text-align: center; }
+.cam-toggle {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.72rem; color: var(--muted);
+  cursor: pointer; margin-left: 4px;
+  border-left: 1px solid var(--border); padding-left: 8px;
+}
+.cam-toggle input { accent-color: var(--accent-home); }
 
 .player-dot {
   position: absolute;

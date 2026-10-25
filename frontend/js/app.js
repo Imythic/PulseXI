@@ -17,7 +17,18 @@ const state = {
   playerDots: {},   // playerId -> DOM element
   playerSlots: {},  // playerId -> { baseX, baseY, teamId, phase }
   activePlayerId: null,
+  zoom: 1.0,
+  followBall: false,
 };
+
+function applyCamera(ballX, ballY) {
+  const content = el("pitchContent");
+  const originX = state.followBall ? ballX : 50;
+  const originY = state.followBall ? ballY : 50;
+  content.style.transformOrigin = `${originX}% ${originY}%`;
+  content.style.transform = `scale(${state.zoom})`;
+  el("zoomLabel").textContent = `${state.zoom.toFixed(1)}x`;
+}
 
 const el = (id) => document.getElementById(id);
 
@@ -201,6 +212,9 @@ function renderFrame() {
     ball.classList.add(latest.team_id === state.meta.home.id ? "home" : "away");
   }
   updatePlayerPositions(latest);
+  state.lastBallX = latest ? latest.x : 50;
+  state.lastBallY = latest ? latest.y : 50;
+  applyCamera(state.lastBallX, state.lastBallY);
 
   // reveal any cues we've just passed
   for (const cue of state.cues) {
@@ -370,6 +384,20 @@ function wireControls() {
   });
   el("playerSelect").addEventListener("change", refreshPersonaFeed);
   el("langSelect").addEventListener("change", refreshPersonaFeed);
+
+  el("zoomInBtn").addEventListener("click", () => {
+    state.zoom = Math.min(2.4, Math.round((state.zoom + 0.2) * 10) / 10);
+    applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+  });
+  el("zoomOutBtn").addEventListener("click", () => {
+    state.zoom = Math.max(1.0, Math.round((state.zoom - 0.2) * 10) / 10);
+    applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+  });
+  el("followBallToggle").addEventListener("change", (e) => {
+    state.followBall = e.target.checked;
+    if (state.followBall && state.zoom < 1.6) state.zoom = 1.6;
+    applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+  });
 }
 
 (async function init() {

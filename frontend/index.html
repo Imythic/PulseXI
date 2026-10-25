@@ -21,11 +21,11 @@
     <div class="controls">
       <button id="newMatchBtn" class="btn">New Match</button>
       <button id="playBtn" class="btn primary">▶ Play</button>
-      <select id="speedSelect" class="btn">
-        <option value="15">15x</option>
-        <option value="40" selected>40x</option>
-        <option value="90">90x</option>
-        <option value="180">180x</option>
+      <select id="speedSelect" class="btn" title="Playback speed">
+        <option value="15">⏩ 15x speed</option>
+        <option value="40" selected>⏩ 40x speed</option>
+        <option value="90">⏩ 90x speed</option>
+        <option value="180">⏩ 180x speed</option>
       </select>
       <label class="audio-toggle" title="Reads overlay commentary aloud — built for blind and partially-sighted fans">
         <input type="checkbox" id="audioToggle" /> 🔊 Audio commentary
@@ -41,27 +41,37 @@
       <div class="broadcast-tag">● LIVE — PulseXI Tactical Cam</div>
       <div class="pitch-stage">
         <div class="pitch" id="pitch">
-          <div class="pitch-line halfway"></div>
-          <div class="pitch-circle"></div>
-          <div class="pitch-spot center"></div>
-          <div class="pitch-box left"></div>
-          <div class="pitch-box left small"></div>
-          <div class="pitch-arc left"></div>
-          <div class="pitch-spot left"></div>
-          <div class="pitch-box right"></div>
-          <div class="pitch-box right small"></div>
-          <div class="pitch-arc right"></div>
-          <div class="pitch-spot right"></div>
-          <div class="goal left"></div>
-          <div class="goal right"></div>
-          <div class="corner-arc tl"></div>
-          <div class="corner-arc tr"></div>
-          <div class="corner-arc bl"></div>
-          <div class="corner-arc br"></div>
-          <div class="players-layer" id="playersLayer"></div>
-          <div class="ball" id="ball"></div>
+          <div class="pitch-content" id="pitchContent">
+            <div class="pitch-line halfway"></div>
+            <div class="pitch-circle"></div>
+            <div class="pitch-spot center"></div>
+            <div class="pitch-box left"></div>
+            <div class="pitch-box left small"></div>
+            <div class="pitch-arc left"></div>
+            <div class="pitch-spot left"></div>
+            <div class="pitch-box right"></div>
+            <div class="pitch-box right small"></div>
+            <div class="pitch-arc right"></div>
+            <div class="pitch-spot right"></div>
+            <div class="goal left"></div>
+            <div class="goal right"></div>
+            <div class="corner-arc tl"></div>
+            <div class="corner-arc tr"></div>
+            <div class="corner-arc bl"></div>
+            <div class="corner-arc br"></div>
+            <div class="players-layer" id="playersLayer"></div>
+            <div class="ball" id="ball"></div>
+          </div>
         </div>
         <div class="player-popup hidden" id="playerPopup"></div>
+        <div class="camera-controls">
+          <button id="zoomOutBtn" class="cam-btn" type="button" title="Zoom out">−</button>
+          <span class="zoom-label" id="zoomLabel">1.0x</span>
+          <button id="zoomInBtn" class="cam-btn" type="button" title="Zoom in">+</button>
+          <label class="cam-toggle" title="Camera zooms in and tracks wherever the ball is">
+            <input type="checkbox" id="followBallToggle" /> 📷 Follow ball
+          </label>
+        </div>
       </div>
       <div class="overlay-zone" id="overlayZone"></div>
 
