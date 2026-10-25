@@ -167,8 +167,18 @@ export function initPitch3D(canvas) {
       ring.visible = false;
       group.add(ring);
 
+      // Generous invisible hit-zone -- the visible body is small and these
+      // players are constantly moving/jittering, so the actual raycast
+      // target needs to be much more forgiving than the visual mesh.
+      const hitZone = new THREE.Mesh(
+        new THREE.SphereGeometry(0.65, 8, 8),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+      );
+      hitZone.position.y = 0.5;
+      group.add(hitZone);
+
       scene.add(group);
-      playerMeshes[id] = { group, body, ring, target: { x: 0, z: 0 } };
+      playerMeshes[id] = { group, body, ring, hitZone, target: { x: 0, z: 0 } };
     });
     activePlayerId = null;
   }
@@ -232,9 +242,9 @@ export function initPitch3D(canvas) {
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
     const entries = Object.entries(playerMeshes);
-    const hits = raycaster.intersectObjects(entries.map(([, m]) => m.body));
+    const hits = raycaster.intersectObjects(entries.map(([, m]) => m.hitZone));
     if (!hits.length) return null;
-    const found = entries.find(([, m]) => m.body === hits[0].object);
+    const found = entries.find(([, m]) => m.hitZone === hits[0].object);
     return found ? found[0] : null;
   }
 

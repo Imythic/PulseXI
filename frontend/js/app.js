@@ -229,6 +229,7 @@ function showPlayerPopup(playerId, number, isHome) {
 
 function hidePlayerPopup() {
   state.openPlayerId = null;
+  state.pinnedPlayerId = null;
   el("playerPopup").classList.add("hidden");
 }
 
@@ -388,13 +389,25 @@ function wireControls() {
   });
 
   const canvas = el("pitchCanvas");
-  canvas.addEventListener("click", (e) => {
+  canvas.addEventListener("mousemove", (e) => {
+    if (state.pinnedPlayerId) return; // pinned popup ignores hover until unpinned
     const hitId = pitch3d.hitTest(e.clientX, e.clientY);
-    if (hitId && hitId !== state.openPlayerId) {
+    if (hitId) {
       const slot = state.playerSlots[hitId];
       showPlayerPopup(hitId, slot.number, slot.teamId === state.meta.home.id);
     } else {
       hidePlayerPopup();
+    }
+  });
+  canvas.addEventListener("click", (e) => {
+    const hitId = pitch3d.hitTest(e.clientX, e.clientY);
+    if (hitId && hitId !== state.pinnedPlayerId) {
+      state.pinnedPlayerId = hitId;
+      const slot = state.playerSlots[hitId];
+      showPlayerPopup(hitId, slot.number, slot.teamId === state.meta.home.id);
+    } else {
+      state.pinnedPlayerId = null;
+      if (!hitId) hidePlayerPopup();
     }
   });
 
