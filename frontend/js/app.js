@@ -14,9 +14,98 @@ const state = {
   playing: false,
   speed: 40,
   shownCueIds: new Set(),
+  playerDots: {},   // playerId -> DOM element
+  playerSlots: {},  // playerId -> { baseX, baseY, teamId, phase }
+  activePlayerId: null,
 };
 
 const el = (id) => document.getElementById(id);
+
+// Must match backend/data/generator.py FORMATION_POSITIONS order exactly —
+// each squad is built GK, CB, CB, LB, RB, CM, CM, CDM, LW, RW, ST.
+const FORMATION_SLOTS = [
+  { x: 0.05, y: 0.50 }, // GK
+  { x: 0.20, y: 0.32 }, // CB1
+  { x: 0.20, y: 0.68 }, // CB2
+  { x: 0.24, y: 0.10 }, // LB
+  { x: 0.24, y: 0.90 }, // RB
+  { x: 0.46, y: 0.30 }, // CM1
+  { x: 0.46, y: 0.70 }, // CM2
+  { x: 0.38, y: 0.50 }, // CDM
+  { x: 0.74, y: 0.14 }, // LW
+  { x: 0.72, y: 0.86 }, // RW
+  { x: 0.80, y: 0.50 }, // ST
+];
+
+function phaseFor(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1000;
+  return h / 1000 * Math.PI * 2;
+}
+
+function buildPlayerDots() {
+  const layer = el("playersLayer");
+  layer.innerHTML = "";
+  state.playerDots = {};
+  state.playerSlots = {};
+  state.activePlayerId = null;
+
+  for (const teamId of [state.meta.home.id, state.meta.away.id]) {
+    const squad = Object.values(state.players).filter((p) => p.team_id === teamId);
+    squad.forEach((p, i) => {
+      const slot = FORMATION_SLOTS[i] || FORMATION_SLOTS[FORMATION_SLOTS.length - 1];
+      const isHome = teamId === state.meta.home.id;
+      const baseX = isHome ? slot.x * 100 : 100 - slot.x * 100;
+      const baseY = slot.y * 100;
+
+      const dot = document.createElement("div");
+      dot.className = `player-dot ${isHome ? "home" : "away"}${p.position === "GK" ? " gk" : ""}`;
+      dot.title = `${p.name} — ${p.position}`;
+      dot.textContent = p.position === "GK" ? "GK" : "";
+      dot.style.left = `${baseX}%`;
+      dot.style.top = `${baseY}%`;
+      layer.appendChild(dot);
+
+      state.playerDots[p.id] = dot;
+      state.playerSlots[p.id] = { baseX, baseY, teamId, phase: phaseFor(p.id) };
+    });
+  }
+}
+
+function updatePlayerPositions(latestEvent) {
+  const homeId = state.meta.home.id;
+  const ballXFrac = (latestEvent ? latestEvent.x : 50) / 100;
+  const shiftHome = Math.max(-0.12, Math.min(0.12, (ballXFrac - 0.5) * 0.4));
+  const shiftAway = Math.max(-0.12, Math.min(0.12, (0.5 - ballXFrac) * 0.4));
+
+  const involvedId = latestEvent ? (latestEvent.player_id || null) : null;
+  if (involvedId !== state.activePlayerId) {
+    if (state.activePlayerId && state.playerDots[state.activePlayerId]) {
+      state.playerDots[state.activePlayerId].classList.remove("active");
+    }
+    if (involvedId && state.playerDots[involvedId]) {
+      state.playerDots[involvedId].classList.add("active");
+    }
+    state.activePlayerId = involvedId;
+  }
+
+  for (const [pid, slot] of Object.entries(state.playerSlots)) {
+    const dot = state.playerDots[pid];
+    if (!dot) continue;
+
+    if (pid === involvedId && latestEvent) {
+      dot.style.left = `${latestEvent.x}%`;
+      dot.style.top = `${latestEvent.y}%`;
+      continue;
+    }
+
+    const shift = slot.teamId === homeId ? shiftHome : -shiftAway;
+    const jitterX = Math.sin(state.clock * 0.5 + slot.phase) * 1.4;
+    const jitterY = Math.cos(state.clock * 0.4 + slot.phase) * 1.4;
+    dot.style.left = `${Math.max(2, Math.min(98, slot.baseX + shift * 100 + jitterX))}%`;
+    dot.style.top = `${Math.max(4, Math.min(96, slot.baseY + jitterY))}%`;
+  }
+}
 
 const BCP47 = { en: "en-US", es: "es-ES", fr: "fr-FR" };
 
@@ -51,6 +140,7 @@ async function newMatch() {
     teamSelect.appendChild(opt);
   }
   populatePlayerSelect();
+  buildPlayerDots();
 }
 
 function populatePlayerSelect() {
@@ -105,6 +195,7 @@ function renderFrame() {
     ball.classList.remove("home", "away");
     ball.classList.add(latest.team_id === state.meta.home.id ? "home" : "away");
   }
+  updatePlayerPositions(latest);
 
   // reveal any cues we've just passed
   for (const cue of state.cues) {
