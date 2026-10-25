@@ -28,10 +28,10 @@ Synthetic events ──▶ Ingest ──▶ Stats ──▶ Explainer ──▶ 
 
 ## What's on screen
 
-- A tilted, broadcast-style 3D "tactical cam" pitch — not a flat top-down diagram — with real markings (penalty arcs, goal mouths, corner arcs), a stadium floodlight glow, and a live scoreline in the topbar that updates the moment a goal lands
-- All 22 players rendered as live, numbered markers in formation (not just a ball dot), shifting toward the ball and drifting naturally; the player currently on the ball gets a glowing highlight ring
-- Hover or click any player for a live stat card — passes, distance covered, top speed, shots, tackles — updating in real time as the match plays
-- Manual zoom controls plus a **Follow Ball** camera mode that tracks the ball's live position
+- A genuine 3D WebGL pitch (Three.js), not a flat diagram with a camera trick — real geometry, lighting, and shadows, with a freely orbitable broadcast "tactical cam" (drag to rotate, scroll to zoom), real markings (penalty arcs, goal mouths, corner arcs), a stadium floodlight glow, and a live scoreline in the topbar that updates the moment a goal lands
+- All 22 players rendered as live, numbered 3D markers in formation (not just a ball dot), easing toward the ball and drifting naturally every frame; the player currently on the ball gets a glowing highlight ring
+- Click any player for a live stat card — passes, distance covered, top speed, shots, tackles — updating in real time as the match plays, correctly positioned via live 3D-to-screen projection as the camera moves
+- Manual zoom controls, a camera reset button, plus a **Follow Ball** mode that smoothly tracks the ball's live position
 - Broadcast-style overlay cards (lower-thirds, stat bugs, milestone cards, a live momentum bar) appearing exactly when each insight fires, each carrying a **✓ Verified** or **~ Corrected** badge so the verification step is visible, not just logged
 - A live personalization panel: switch Analyst / Fan / Player Focus, pick a favorite club or player, switch language — and watch the *same match* become a different feed in real time
 - An **Audio commentary** toggle (🔊) that speaks every overlay moment aloud as it happens, plus a per-card listen button in the personalized feed — built for blind and partially-sighted fans, not just a visual demo
@@ -42,7 +42,7 @@ Synthetic events ──▶ Ingest ──▶ Stats ──▶ Explainer ──▶ 
 
 - **Backend:** Python + FastAPI, pydantic v2 schemas shared across every agent
 - **AI:** GitHub Models (`openai/gpt-4o-mini` by default) for narrative explanation and translation, via the OpenAI-compatible client — no Azure subscription required
-- **Frontend:** vanilla HTML/CSS/JS (no build step), animated pitch + overlay renderer + personalization UI
+- **Frontend:** vanilla HTML/CSS/JS (ES modules, no build step), [Three.js](https://threejs.org/) (via CDN import map) for the 3D pitch scene + overlay renderer + personalization UI
 - **Data:** a from-scratch synthetic match generator (`backend/data/generator.py`) — fictional clubs, fictional players, procedurally generated passes/shots/tackles/pressure/possession events across a full 90-minute match. No real Premier League data of any kind.
 
 ## Running it locally
@@ -81,7 +81,9 @@ PulseXI/
 └── frontend/
     ├── index.html
     ├── css/style.css
-    └── js/app.js
+    └── js/
+        ├── app.js       # UI state, playback, personalization, recap
+        └── pitch3d.js   # Three.js scene: pitch, players, camera, raycasting
 ```
 
 ## Why this fits the brief

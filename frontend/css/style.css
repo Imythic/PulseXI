@@ -125,79 +125,33 @@ body {
 .pitch-stage {
   position: relative;
   z-index: 1;
-  perspective: 1500px;
-  perspective-origin: 50% 0%;
-  padding: 8px 0 28px;
 }
 
-.pitch {
-  position: relative;
+.pitch-canvas {
+  display: block;
   width: 100%;
-  aspect-ratio: 16 / 8.4;
-  max-height: 460px;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.05), transparent 65%),
-    repeating-linear-gradient(90deg, var(--pitch-green) 0 5%, #0c4e2e 5% 10%);
-  border: 2px solid var(--pitch-line);
-  border-radius: 6px;
-  overflow: hidden;
-  transform: rotateX(46deg) scale(1.08);
-  transform-origin: 50% 100%;
+  height: 460px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   box-shadow:
     0 40px 60px -20px rgba(0, 0, 0, 0.65),
     0 0 0 1px rgba(0, 0, 0, 0.3);
+  cursor: grab;
 }
-.pitch-line.halfway {
-  position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
-  background: var(--pitch-line);
-}
-.pitch-circle {
-  position: absolute; left: 50%; top: 50%; width: 15%; aspect-ratio: 1/1;
-  border: 2px solid var(--pitch-line); border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.pitch-spot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--pitch-line); transform: translate(-50%, -50%); }
-.pitch-spot.center { left: 50%; top: 50%; }
-.pitch-spot.left { left: 10%; top: 50%; }
-.pitch-spot.right { left: 90%; top: 50%; }
+.pitch-canvas:active { cursor: grabbing; }
 
-.pitch-box {
-  position: absolute; top: 20%; bottom: 20%; width: 12%;
-  border: 2px solid var(--pitch-line);
+.drag-hint {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  background: rgba(10, 14, 20, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 9px;
+  font-size: 0.65rem;
+  color: var(--muted);
+  pointer-events: none;
+  transition: opacity 1.5s ease 2s;
 }
-.pitch-box.left { left: 0; border-left: none; }
-.pitch-box.right { right: 0; border-right: none; }
-.pitch-box.small { top: 35%; bottom: 35%; width: 5%; }
-
-.pitch-arc {
-  position: absolute; top: 32%; height: 36%; width: 6%;
-  border: 2px solid var(--pitch-line);
-}
-.pitch-arc.left { left: 12%; border-left: none; border-radius: 0 50% 50% 0 / 0 50% 50% 0; }
-.pitch-arc.right { right: 12%; border-right: none; border-radius: 50% 0 0 50% / 50% 0 0 50%; }
-
-.goal {
-  position: absolute; top: 42%; height: 16%; width: 1.4%;
-  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.9) 0 3px, transparent 3px 7px);
-  border: 2px solid var(--pitch-line); border-right: none; border-left: none;
-}
-.goal.left { left: -0.2%; }
-.goal.right { right: -0.2%; }
-
-.corner-arc { position: absolute; width: 3%; aspect-ratio: 1/1; border: 2px solid var(--pitch-line); border-radius: 50%; }
-.corner-arc.tl { top: -1.5%; left: -1.5%; clip-path: inset(50% 50% 0 0); }
-.corner-arc.tr { top: -1.5%; right: -1.5%; clip-path: inset(50% 0 0 50%); }
-.corner-arc.bl { bottom: -1.5%; left: -1.5%; clip-path: inset(0 50% 50% 0); }
-.corner-arc.br { bottom: -1.5%; right: -1.5%; clip-path: inset(0 0 50% 50%); }
-
-.pitch-content {
-  position: absolute; inset: 0;
-  transform-origin: 50% 50%;
-  transform: scale(1);
-  transition: transform 0.5s ease, transform-origin 0.3s linear;
-}
-
-.players-layer { position: absolute; inset: 0; z-index: 2; }
+.drag-hint.faded { opacity: 0; }
 
 .camera-controls {
   position: absolute; bottom: 10px; right: 10px; z-index: 10;
@@ -224,35 +178,6 @@ body {
 }
 .cam-toggle input { accent-color: var(--accent-home); }
 
-.player-dot {
-  position: absolute;
-  width: 15px; height: 15px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: left 0.9s ease, top 0.9s ease;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 7px; font-weight: 700; color: rgba(0,0,0,0.65);
-  border: 1.5px solid rgba(255,255,255,0.85);
-}
-.player-dot::after {
-  content: "";
-  position: absolute; left: 50%; bottom: -3px;
-  width: 16px; height: 5px;
-  background: radial-gradient(ellipse, rgba(0,0,0,0.45), transparent 70%);
-  transform: translateX(-50%);
-  z-index: -1;
-}
-.player-dot.home { background: var(--accent-home); box-shadow: 0 0 6px rgba(54,214,198,0.7); }
-.player-dot.away { background: var(--accent-away); box-shadow: 0 0 6px rgba(255,154,60,0.7); }
-.player-dot.gk { background: #f4e04d; box-shadow: 0 0 6px rgba(244,224,77,0.7); }
-.player-dot.active {
-  width: 19px; height: 19px;
-  border: 2px solid #fff;
-  z-index: 5;
-}
-.player-dot { cursor: pointer; }
-.player-dot:hover { filter: brightness(1.25); }
-
 .player-popup {
   position: absolute;
   z-index: 10;
@@ -273,25 +198,6 @@ body {
 .player-popup .pp-row span:last-child { color: var(--text); font-weight: 600; }
 .player-popup.home-team { border-left: 3px solid var(--accent-home); }
 .player-popup.away-team { border-left: 3px solid var(--accent-away); }
-
-.ball {
-  position: absolute;
-  width: 13px; height: 13px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff 0%, #e8e8e8 55%, #bfbfbf 100%);
-  box-shadow: 0 0 10px rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.5);
-  transform: translate(-50%, -50%);
-  transition: left 0.35s linear, top 0.35s linear;
-  left: 50%; top: 50%;
-  z-index: 6;
-}
-.ball::after {
-  content: "";
-  position: absolute; left: 50%; bottom: -4px;
-  width: 14px; height: 4px;
-  background: radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%);
-  transform: translateX(-50%);
-}
 
 .overlay-zone {
   position: relative;

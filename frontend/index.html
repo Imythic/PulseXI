@@ -42,34 +42,14 @@
       <div class="stadium-glow"></div>
       <div class="broadcast-tag">● LIVE — PulseXI Tactical Cam</div>
       <div class="pitch-stage">
-        <div class="pitch" id="pitch">
-          <div class="pitch-content" id="pitchContent">
-            <div class="pitch-line halfway"></div>
-            <div class="pitch-circle"></div>
-            <div class="pitch-spot center"></div>
-            <div class="pitch-box left"></div>
-            <div class="pitch-box left small"></div>
-            <div class="pitch-arc left"></div>
-            <div class="pitch-spot left"></div>
-            <div class="pitch-box right"></div>
-            <div class="pitch-box right small"></div>
-            <div class="pitch-arc right"></div>
-            <div class="pitch-spot right"></div>
-            <div class="goal left"></div>
-            <div class="goal right"></div>
-            <div class="corner-arc tl"></div>
-            <div class="corner-arc tr"></div>
-            <div class="corner-arc bl"></div>
-            <div class="corner-arc br"></div>
-            <div class="players-layer" id="playersLayer"></div>
-            <div class="ball" id="ball"></div>
-          </div>
-        </div>
+        <canvas id="pitchCanvas" class="pitch-canvas"></canvas>
+        <div class="drag-hint" id="dragHint">🖱 Drag to rotate · Scroll to zoom</div>
         <div class="player-popup hidden" id="playerPopup"></div>
         <div class="camera-controls">
           <button id="zoomOutBtn" class="cam-btn" type="button" title="Zoom out">−</button>
           <span class="zoom-label" id="zoomLabel">1.0x</span>
           <button id="zoomInBtn" class="cam-btn" type="button" title="Zoom in">+</button>
+          <button id="resetCamBtn" class="cam-btn" type="button" title="Reset camera">⟲</button>
           <label class="cam-toggle" title="Camera zooms in and tracks wherever the ball is">
             <input type="checkbox" id="followBallToggle" /> 📷 Follow ball
           </label>
@@ -129,6 +109,14 @@
     </div>
   </div>
 
-  <script src="js/app.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 /* ── PulseXI – Frontend Application ───────────────────────────────── */
+import { initPitch3D } from "./pitch3d.js";
 
 const API_BASE = (location.port && location.port !== "8010") ? "http://localhost:8010" : "";
 
@@ -14,21 +15,11 @@ const state = {
   playing: false,
   speed: 40,
   shownCueIds: new Set(),
-  playerDots: {},   // playerId -> DOM element
-  playerSlots: {},  // playerId -> { baseX, baseY, teamId, phase }
-  activePlayerId: null,
-  zoom: 1.0,
+  playerSlots: {},  // playerId -> { baseX, baseY, teamId, phase, number }
   followBall: false,
 };
 
-function applyCamera(ballX, ballY) {
-  const content = el("pitchContent");
-  const originX = state.followBall ? ballX : 50;
-  const originY = state.followBall ? ballY : 50;
-  content.style.transformOrigin = `${originX}% ${originY}%`;
-  content.style.transform = `scale(${state.zoom})`;
-  el("zoomLabel").textContent = `${state.zoom.toFixed(1)}x`;
-}
+let pitch3d = null;
 
 const el = (id) => document.getElementById(id);
 
@@ -54,14 +45,11 @@ function phaseFor(id) {
   return h / 1000 * Math.PI * 2;
 }
 
-function buildPlayerDots() {
-  const layer = el("playersLayer");
-  layer.innerHTML = "";
-  state.playerDots = {};
+function buildPlayers3D() {
   state.playerSlots = {};
-  state.activePlayerId = null;
   hidePlayerPopup();
 
+  const playersInfo = {};
   for (const teamId of [state.meta.home.id, state.meta.away.id]) {
     const squad = Object.values(state.players).filter((p) => p.team_id === teamId);
     squad.forEach((p, i) => {
@@ -69,23 +57,13 @@ function buildPlayerDots() {
       const isHome = teamId === state.meta.home.id;
       const baseX = isHome ? slot.x * 100 : 100 - slot.x * 100;
       const baseY = slot.y * 100;
-
       const number = i + 1;
-      const dot = document.createElement("div");
-      dot.className = `player-dot ${isHome ? "home" : "away"}${p.position === "GK" ? " gk" : ""}`;
-      dot.title = `#${number} ${p.name} — ${p.position}`;
-      dot.textContent = number;
-      dot.style.left = `${baseX}%`;
-      dot.style.top = `${baseY}%`;
-      dot.addEventListener("mouseenter", () => showPlayerPopup(p.id, number, isHome));
-      dot.addEventListener("mouseleave", hidePlayerPopup);
-      dot.addEventListener("click", () => showPlayerPopup(p.id, number, isHome));
-      layer.appendChild(dot);
 
-      state.playerDots[p.id] = dot;
       state.playerSlots[p.id] = { baseX, baseY, teamId, phase: phaseFor(p.id), number };
+      playersInfo[p.id] = { teamId, isGK: p.position === "GK", number };
     });
   }
+  pitch3d.buildPlayers(playersInfo, state.meta.home.id);
 }
 
 function updatePlayerPositions(latestEvent) {
@@ -93,34 +71,23 @@ function updatePlayerPositions(latestEvent) {
   const ballXFrac = (latestEvent ? latestEvent.x : 50) / 100;
   const shiftHome = Math.max(-0.12, Math.min(0.12, (ballXFrac - 0.5) * 0.4));
   const shiftAway = Math.max(-0.12, Math.min(0.12, (0.5 - ballXFrac) * 0.4));
-
   const involvedId = latestEvent ? (latestEvent.player_id || null) : null;
-  if (involvedId !== state.activePlayerId) {
-    if (state.activePlayerId && state.playerDots[state.activePlayerId]) {
-      state.playerDots[state.activePlayerId].classList.remove("active");
-    }
-    if (involvedId && state.playerDots[involvedId]) {
-      state.playerDots[involvedId].classList.add("active");
-    }
-    state.activePlayerId = involvedId;
-  }
 
+  const positions = {};
   for (const [pid, slot] of Object.entries(state.playerSlots)) {
-    const dot = state.playerDots[pid];
-    if (!dot) continue;
-
     if (pid === involvedId && latestEvent) {
-      dot.style.left = `${latestEvent.x}%`;
-      dot.style.top = `${latestEvent.y}%`;
+      positions[pid] = { xPct: latestEvent.x, yPct: latestEvent.y };
       continue;
     }
-
     const shift = slot.teamId === homeId ? shiftHome : -shiftAway;
     const jitterX = Math.sin(state.clock * 0.5 + slot.phase) * 1.4;
     const jitterY = Math.cos(state.clock * 0.4 + slot.phase) * 1.4;
-    dot.style.left = `${Math.max(2, Math.min(98, slot.baseX + shift * 100 + jitterX))}%`;
-    dot.style.top = `${Math.max(4, Math.min(96, slot.baseY + jitterY))}%`;
+    positions[pid] = {
+      xPct: Math.max(2, Math.min(98, slot.baseX + shift * 100 + jitterX)),
+      yPct: Math.max(4, Math.min(96, slot.baseY + jitterY)),
+    };
   }
+  pitch3d.updatePlayers(positions, involvedId);
 }
 
 const BCP47 = { en: "en-US", es: "es-ES", fr: "fr-FR" };
@@ -156,7 +123,7 @@ async function newMatch() {
     teamSelect.appendChild(opt);
   }
   populatePlayerSelect();
-  buildPlayerDots();
+  buildPlayers3D();
 }
 
 function populatePlayerSelect() {
@@ -204,17 +171,8 @@ function renderFrame() {
   for (const e of state.events) {
     if (timeAt(e) <= state.clock) latest = e; else break;
   }
-  if (latest) {
-    const ball = el("ball");
-    ball.style.left = `${latest.x}%`;
-    ball.style.top = `${latest.y}%`;
-    ball.classList.remove("home", "away");
-    ball.classList.add(latest.team_id === state.meta.home.id ? "home" : "away");
-  }
+  if (latest) pitch3d.updateBall(latest.x, latest.y);
   updatePlayerPositions(latest);
-  state.lastBallX = latest ? latest.x : 50;
-  state.lastBallY = latest ? latest.y : 50;
-  applyCamera(state.lastBallX, state.lastBallY);
 
   // reveal any cues we've just passed
   for (const cue of state.cues) {
@@ -233,13 +191,15 @@ function renderFrame() {
     state.playerSlots[state.openPlayerId].teamId === state.meta.home.id);
 
   el("scrubber").value = Math.floor(state.clock);
+  updateZoomLabel();
 }
 
 function showPlayerPopup(playerId, number, isHome) {
   const popup = el("playerPopup");
-  const dot = state.playerDots[playerId];
   const p = state.players[playerId];
-  if (!popup || !dot || !p) return;
+  if (!popup || !pitch3d || !p) return;
+  const pos = pitch3d.screenPositionOf(playerId);
+  if (!pos) return;
   state.openPlayerId = playerId;
 
   const ps = (state.currentSnapshot && state.currentSnapshot.player_stats[playerId]) || {};
@@ -254,11 +214,14 @@ function showPlayerPopup(playerId, number, isHome) {
     <div class="pp-row"><span>Tackles</span><span>${ps.tackles ?? 0}</span></div>
   `;
 
-  const stageRect = el("pitch").parentElement.getBoundingClientRect();
-  const dotRect = dot.getBoundingClientRect();
-  let left = dotRect.left - stageRect.left + dotRect.width / 2 + 14;
-  let top = dotRect.top - stageRect.top - 10;
-  if (left + 200 > stageRect.width) left = dotRect.left - stageRect.left - 214;
+  const canvas = el("pitchCanvas");
+  const stageRect = canvas.parentElement.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  const originX = canvasRect.left - stageRect.left;
+  const originY = canvasRect.top - stageRect.top;
+  let left = originX + pos.x + 16;
+  let top = originY + pos.y - 10;
+  if (left + 200 > stageRect.width) left = originX + pos.x - 214;
   popup.style.left = `${Math.max(4, left)}px`;
   popup.style.top = `${Math.max(4, top)}px`;
   popup.classList.remove("hidden");
@@ -408,17 +371,31 @@ function wireControls() {
   el("langSelect").addEventListener("change", refreshPersonaFeed);
 
   el("zoomInBtn").addEventListener("click", () => {
-    state.zoom = Math.min(2.4, Math.round((state.zoom + 0.2) * 10) / 10);
-    applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+    pitch3d.zoomBy(0.82);
+    updateZoomLabel();
   });
   el("zoomOutBtn").addEventListener("click", () => {
-    state.zoom = Math.max(1.0, Math.round((state.zoom - 0.2) * 10) / 10);
-    applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+    pitch3d.zoomBy(1.22);
+    updateZoomLabel();
+  });
+  el("resetCamBtn").addEventListener("click", () => {
+    pitch3d.resetCamera();
+    updateZoomLabel();
   });
   el("followBallToggle").addEventListener("change", (e) => {
     state.followBall = e.target.checked;
-    if (state.followBall && state.zoom < 1.6) state.zoom = 1.6;
-    applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+    pitch3d.setFollowBall(state.followBall);
+  });
+
+  const canvas = el("pitchCanvas");
+  canvas.addEventListener("click", (e) => {
+    const hitId = pitch3d.hitTest(e.clientX, e.clientY);
+    if (hitId && hitId !== state.openPlayerId) {
+      const slot = state.playerSlots[hitId];
+      showPlayerPopup(hitId, slot.number, slot.teamId === state.meta.home.id);
+    } else {
+      hidePlayerPopup();
+    }
   });
 
   el("recapBtn").addEventListener("click", showRecap);
@@ -428,9 +405,15 @@ function wireControls() {
   });
 }
 
+function updateZoomLabel() {
+  el("zoomLabel").textContent = `${pitch3d.getZoomRatio().toFixed(1)}x`;
+}
+
 (async function init() {
+  pitch3d = initPitch3D(el("pitchCanvas"));
   wireControls();
   await newMatch();
   await loadTimeline();
   tick();
+  setTimeout(() => el("dragHint").classList.add("faded"), 4000);
 })();
