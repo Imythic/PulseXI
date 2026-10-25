@@ -77,6 +77,7 @@ class PlayerStats(BaseModel):
 
 class TeamStats(BaseModel):
     team_id: str
+    goals: int = 0
     possession_pct: float = 0.0
     passes_completed: int = 0
     pass_accuracy: float = 0.0

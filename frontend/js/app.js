@@ -297,6 +297,7 @@ function renderStats(snap) {
   const as = snap.team_stats[away.id] || {};
   el("homeStats").innerHTML = statBlock(home.name, hs);
   el("awayStats").innerHTML = statBlock(away.name, as);
+  el("scoreDisplay").textContent = `${hs.goals ?? 0} – ${as.goals ?? 0}`;
 
   const momentum = snap.momentum ?? 0; // -1..1
   const pct = 50 + momentum * 50;
@@ -351,9 +352,29 @@ function tick() {
     if (state.clock >= state.maxClock) {
       state.playing = false;
       el("playBtn").textContent = "▶ Play";
+      showRecap();
     }
   }
   setTimeout(tick, 150);
+}
+
+async function showRecap() {
+  if (!state.matchId) return;
+  const backdrop = el("recapBackdrop");
+  backdrop.classList.remove("hidden");
+  el("recapSummary").textContent = "Loading recap…";
+  const recap = await api(`/api/match/${state.matchId}/recap`);
+  el("recapHeadline").textContent = recap.headline;
+  el("recapScore").textContent = `${state.meta.home.name} vs ${state.meta.away.name} — Full Time`;
+  el("recapSummary").textContent = recap.summary;
+  const badge = el("recapBadge");
+  badge.textContent = recap.verified ? "✓ Verified" : "~ Corrected";
+  badge.className = `verified-badge${recap.verified ? "" : " corrected"}`;
+  el("recapSpeakBtn").onclick = () => speakText(recap.summary, el("langSelect").value);
+}
+
+function hideRecap() {
+  el("recapBackdrop").classList.add("hidden");
 }
 
 function wireControls() {
@@ -371,6 +392,7 @@ function wireControls() {
   el("newMatchBtn").addEventListener("click", async () => {
     state.playing = false;
     el("playBtn").textContent = "▶ Play";
+    hideRecap();
     await newMatch();
     await loadTimeline();
   });
@@ -397,6 +419,12 @@ function wireControls() {
     state.followBall = e.target.checked;
     if (state.followBall && state.zoom < 1.6) state.zoom = 1.6;
     applyCamera(state.lastBallX ?? 50, state.lastBallY ?? 50);
+  });
+
+  el("recapBtn").addEventListener("click", showRecap);
+  el("recapCloseBtn").addEventListener("click", hideRecap);
+  el("recapBackdrop").addEventListener("click", (e) => {
+    if (e.target.id === "recapBackdrop") hideRecap();
   });
 }
 

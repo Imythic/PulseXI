@@ -63,6 +63,14 @@ def match_timeline(match_id: str):
     }
 
 
+@app.get("/api/match/{match_id}/recap")
+def match_recap(match_id: str):
+    bundle = get_match(match_id)
+    if not bundle:
+        raise HTTPException(404, "match not found")
+    return bundle.recap
+
+
 @app.get("/api/match/{match_id}/personalize")
 def personalize(
     match_id: str,

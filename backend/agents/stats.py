@@ -37,6 +37,9 @@ def update_stats(state: MatchState, event: MatchEvent) -> None:
             if event.distance_m:
                 ps.distance_covered_m += event.distance_m
 
+    elif event.type == EventType.GOAL:
+        ts.goals += 1
+
     elif event.type == EventType.SHOT:
         ts.shots += 1
         if event.outcome in ("on_target", "goal"):

@@ -1,9 +1,9 @@
-"""Orchestrator — runs one synthetic match through all six agents and
+"""Orchestrator — runs one synthetic match through all seven agents and
 caches the result so the API layer stays thin.
 
-Pipeline: Ingest -> Stats -> Explainer -> Verifier -> Render, then
-Personalizer is applied on demand per viewer request (it needs to know
-who's watching).
+Pipeline: Ingest -> Stats -> Explainer -> Verifier -> Render, then Recap
+runs once at full time, and Personalizer is applied on demand per viewer
+request (it needs to know who's watching).
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 from backend.agents.explainer import detect_triggers, explain
 from backend.agents.ingest import ingest_event, new_match_state
+from backend.agents.recap import build_recap
 from backend.agents.render import render_cue
 from backend.agents.verifier import verify
 from backend.data.generator import generate_match
@@ -23,6 +24,7 @@ class MatchBundle:
     insights: list[Insight] = field(default_factory=list)
     cues: list[OverlayCue] = field(default_factory=list)
     minute_snapshots: list[dict] = field(default_factory=list)
+    recap: dict = field(default_factory=dict)
 
 
 _MATCHES: dict[str, MatchBundle] = {}
@@ -47,6 +49,7 @@ def create_match(seed: int | None = None) -> MatchBundle:
             bundle.minute_snapshots.append(_snapshot(state))
 
     bundle.minute_snapshots.append(_snapshot(state))  # final state
+    bundle.recap = build_recap(bundle.insights, state)
     _MATCHES[meta.match_id] = bundle
     return bundle
 
