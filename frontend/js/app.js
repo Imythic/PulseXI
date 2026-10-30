@@ -1,7 +1,15 @@
 /* ── PulseXI – Frontend Application ───────────────────────────────── */
 import { initPitch3D } from "./pitch3d.js";
 
-const API_BASE = (location.port && location.port !== "8010") ? "http://localhost:8010" : "";
+// Static demo mode: this deploy has no live FastAPI backend, so match
+// creation, the timeline, personalization, and the recap are all served
+// from one pre-computed match frozen to JSON in data/. The personalizer
+// logic below is a faithful port of backend/agents/personalizer.py so
+// mode/team/player/language filtering still works client-side. To run
+// against the real backend (fresh match each time, live LLM narration
+// when GITHUB_TOKEN is set), set DEMO_MODE = false.
+const DEMO_MODE = true;
+const API_BASE = DEMO_MODE ? "" : ((location.port && location.port !== "8010") ? "http://localhost:8010" : "");
 
 const state = {
   matchId: null,
@@ -110,8 +118,74 @@ async function api(path, opts) {
   return res.json();
 }
 
+// ── Static-demo personalizer (port of backend/agents/personalizer.py) ──────
+const HEADLINE_PHRASEBOOK = {
+  milestone: { en: "GOAL", es: "GOL", fr: "BUT" },
+  danger: { en: "Big chance", es: "Gran ocasion", fr: "Grosse occasion" },
+  tactical: { en: "Tactical shift", es: "Cambio tactico", fr: "Bascule tactique" },
+  control: { en: "Taking control", es: "Tomando el control", fr: "Prise de controle" },
+  momentum_shift: { en: "Momentum swings", es: "Cambia el momento", fr: "Le momentum bascule" },
+};
+
+function findEventLocal(events, eventId) {
+  if (!eventId) return null;
+  return events.find((e) => e.id === eventId) || null;
+}
+
+function teamOfLocal(events, ins) {
+  const event = findEventLocal(events, ins.related_event_id);
+  return event ? event.team_id : null;
+}
+
+function filterForRequestLocal(insights, events, req) {
+  if (req.mode === "analyst") return insights;
+
+  if (req.mode === "player_focus" && req.favorite_player_id) {
+    return insights.filter((ins) => {
+      const event = findEventLocal(events, ins.related_event_id);
+      return event && (event.player_id === req.favorite_player_id || event.target_player_id === req.favorite_player_id);
+    });
+  }
+
+  if (req.mode === "fan") {
+    let out = insights;
+    if (req.favorite_team_id) {
+      out = out.filter((ins) => teamOfLocal(events, ins) === req.favorite_team_id || ins.importance >= 0.9);
+    }
+    return out.filter((ins) => ins.importance >= 0.5);
+  }
+
+  return insights;
+}
+
+function localizeBodyLocal(ins, req) {
+  let body = ins.explanation;
+  if (req.mode === "analyst") {
+    body = `${body} (importance ${ins.importance.toFixed(2)}, source: ${ins.source})`;
+  } else if (req.mode === "fan") {
+    body = body.replaceAll("tactically", "").trim();
+  }
+  if (req.language !== "en") {
+    body = `${body} [${req.language} translation unavailable offline]`;
+  }
+  return body;
+}
+
+function renderCardLocal(ins, req) {
+  const headline = (HEADLINE_PHRASEBOOK[ins.category] && HEADLINE_PHRASEBOOK[ins.category][req.language]) || ins.headline;
+  const body = localizeBodyLocal(ins, req);
+  const tag = { analyst: "analyst", fan: "fan", player_focus: "player" }[req.mode];
+  return { minute: ins.minute, second: ins.second, title: headline, body, tag, verified: ins.verified };
+}
+
+function buildFeedLocal(insights, events, req) {
+  return filterForRequestLocal(insights, events, req).map((ins) => renderCardLocal(ins, req));
+}
+
 async function newMatch() {
-  const data = await api("/api/match/new", { method: "POST" });
+  const data = DEMO_MODE
+    ? await api("/data/match.json")
+    : await api("/api/match/new", { method: "POST" });
   state.matchId = data.match_id;
   state.meta = data.meta;
   state.players = data.players;
@@ -144,9 +218,12 @@ function populatePlayerSelect() {
 }
 
 async function loadTimeline() {
-  const data = await api(`/api/match/${state.matchId}/timeline`);
+  const data = DEMO_MODE
+    ? await api("/data/timeline.json")
+    : await api(`/api/match/${state.matchId}/timeline`);
   state.events = data.events;
   state.cues = data.cues;
+  state.insights = data.insights || [];
   state.minuteSnapshots = data.minute_snapshots;
   const last = state.events[state.events.length - 1];
   state.maxClock = last ? last.minute * 60 + last.second + 5 : 5400;
@@ -287,18 +364,26 @@ async function refreshPersonaFeed() {
   const teamId = el("teamSelect").value;
   const playerId = el("playerSelect").value;
   const lang = el("langSelect").value;
-  const params = new URLSearchParams({ mode, language: lang });
-  if (teamId) params.set("favorite_team_id", teamId);
-  if (mode === "player_focus" && playerId) params.set("favorite_player_id", playerId);
 
-  const data = await api(`/api/match/${state.matchId}/personalize?${params.toString()}`);
+  let cards;
+  if (DEMO_MODE) {
+    const req = { mode, language: lang, favorite_team_id: teamId || null, favorite_player_id: mode === "player_focus" ? (playerId || null) : null };
+    cards = buildFeedLocal(state.insights, state.events, req);
+  } else {
+    const params = new URLSearchParams({ mode, language: lang });
+    if (teamId) params.set("favorite_team_id", teamId);
+    if (mode === "player_focus" && playerId) params.set("favorite_player_id", playerId);
+    const data = await api(`/api/match/${state.matchId}/personalize?${params.toString()}`);
+    cards = data.cards;
+  }
+
   const feed = el("personaFeed");
   feed.innerHTML = "";
-  if (!data.cards.length) {
+  if (!cards.length) {
     feed.innerHTML = '<div class="persona-card">No moments yet for this filter.</div>';
     return;
   }
-  for (const c of data.cards) {
+  for (const c of cards) {
     const card = document.createElement("div");
     card.className = "persona-card";
     const badge = c.verified
@@ -332,7 +417,9 @@ async function showRecap() {
   const backdrop = el("recapBackdrop");
   backdrop.classList.remove("hidden");
   el("recapSummary").textContent = "Loading recap…";
-  const recap = await api(`/api/match/${state.matchId}/recap`);
+  const recap = DEMO_MODE
+    ? await api("/data/recap.json")
+    : await api(`/api/match/${state.matchId}/recap`);
   el("recapHeadline").textContent = recap.headline;
   el("recapScore").textContent = `${state.meta.home.name} vs ${state.meta.away.name} — Full Time`;
   el("recapSummary").textContent = recap.summary;

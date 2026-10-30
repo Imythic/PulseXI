@@ -1,5 +1,7 @@
 # 💠 PulseXI — Synthetic Match Insights Engine
 
+**Live demo:** https://pulsexi.vercel.app *(static — one synthetic match pre-computed by the real 7-agent pipeline and frozen to JSON in `frontend/data/`, replayed client-side. Playback, the 3D pitch, persona filtering, and the recap are all fully interactive; "New Match" restarts the same match since there's no live backend behind this deploy. Run the real FastAPI backend locally for a fresh match every time and live LLM narration.)*
+
 **Built for Microsoft x Premier League: Inside the Game Developer Hackathon**
 
 PulseXI turns a raw stream of synthetic football events into a live, **fact-checked** broadcast overlay feed *and* a genuinely personalized, **accessible** fan experience — from the same match, at the same time, through seven purpose-built AI agents.
